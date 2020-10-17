@@ -6,28 +6,23 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from plumbum import cli, BG, TEE
 from plumbum import local
 
-
 ffmpeg = local.cmd.ffmpeg
 
 
 class ClipSilences(cli.Application):
     verbose = cli.Flag(["-v", "--verbose"], help="Enable verbose logging")
     in_file = cli.SwitchAttr("-i", help="The input file to read / analyse / convert", mandatory=True)
-    duration = cli.SwitchAttr("-d", help="The minimum duration of silences", default=2.0, argtype=float)
+    duration = cli.SwitchAttr("-d", help="The minimum duration of silences", default=0.5, argtype=float)
     threshold = cli.SwitchAttr("-t", help="silence threshold in dB", default=-30, argtype=cli.Range(-100, 0))
 
     def info(self, output=None) -> Tuple[int, str, str]:
         print(f'duration: {self.duration}')
-        assert self.duration >= 1
+        assert self.duration >= 0.5
         assert len(self.in_file) > 0
         ffmpeg_cmd = self.mk_ffmpeg_bound_command()
         print(f'Running ffmpeg command: {ffmpeg_cmd}')
         _cmd = (ffmpeg_cmd > output) if output else ffmpeg_cmd
         return _cmd & TEE
-
-    @cli.switch("-o", help="The output file")
-    def trim_silences(self, out_file):
-        pass
 
     def mk_ffmpeg_bound_command(self):
         return ffmpeg[
@@ -39,11 +34,29 @@ class ClipSilences(cli.Application):
             '-',  # output to stdout
         ]
 
+    @staticmethod
+    def ease_in_and_out(x: float) -> float:
+        return 2 * x * x if x < 0.5 else 1 - (-2 * x + 2)**2 / 2
+
+    @staticmethod
+    def rescale_silence(start, duration, end) -> Tuple[float, float, float]:
+        if duration < 0.5:
+            return start, duration, end
+        _duration = min([10, ClipSilences.ease_in_and_out(max([0, duration - 0.5]) / 19.5) * 19.5 / 2 + 0.5])
+        delta = (duration - _duration) / 2
+        return start + delta, _duration, end - delta
+
+    @staticmethod
+    def rescale_all_silences(silences: List[Tuple[float, float, float]]) -> List[Tuple[float, float, float]]:
+        return list(ClipSilences.rescale_silence(s, d, e) for (s, d, e) in silences)
+
+    @cli.switch("-o", help="The output file")
     def trim_silences(self, silences: List[Tuple[float, float, float]]):
         video = VideoFileClip(self.in_file)
         full_duration = video.duration
+        _silences = self.rescale_all_silences(silences)
         non_silent_periods = list(
-            [(end1, start2 - end1, start2) for (_, _, end1), (start2, _, _) in zip(silences[:-1], silences[1:])])
+            [(end1, start2 - end1, start2) for (_, _, end1), (start2, _, _) in zip(_silences[:-1], _silences[1:])])
         print(non_silent_periods)
 
         input_dir, input_file = os.path.split(self.in_file)
