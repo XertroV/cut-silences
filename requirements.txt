@@ -1,0 +1,4 @@
+click~=7.1.2
+plumbum~=1.6.9
+
+moviepy~=1.0.3
