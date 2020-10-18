@@ -1,5 +1,6 @@
 import sys
 import traceback
+import unittest
 
 from main import ClipSilences
 

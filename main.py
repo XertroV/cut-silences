@@ -54,20 +54,26 @@ class ClipSilences(cli.Application):
     def trim_silences(self, silences: List[Tuple[float, float, float]]):
         video = VideoFileClip(self.in_file)
         full_duration = video.duration
+        # print(f"pre_silences: {silences}")
         _silences = self.rescale_all_silences(silences)
+        # print(f"post_silences: {_silences}")
         non_silent_periods = list(
             [(end1, start2 - end1, start2) for (_, _, end1), (start2, _, _) in zip(_silences[:-1], _silences[1:])])
         print(non_silent_periods)
 
         input_dir, input_file = os.path.split(self.in_file)
         fname, fext = os.path.splitext(input_file)
-        output_fname = os.path.join(input_dir, f"{fname}_NOSILENCE_{self.duration}s.{fext}")
+        output_fname = os.path.join(input_dir, f"{fname}_NOSILENCE_{self.duration}s{fext}")
         print(f"writing output to {output_fname}")
 
         clips = list([video.subclip(s, e) for s, d, e in non_silent_periods if d >= 1])
+        print(f"got list of clips")
         output_video = concatenate_videoclips(clips)
-        output_video.write_videofile(output_fname, preset='ultrafast', codec='libx264')
+        print(f"got concatenated_clips")
+        output_video.write_videofile(output_fname, preset='ultrafast', codec='libx264', threads=os.cpu_count(), fps=video.fps)
+        print(f"wrote video out")
         video.close()
+        print(f"closed video")
 
     def main(self, cmd=cli.Set("info", "trim")):
         (_code, _stdout, _stderr) = self.info()
