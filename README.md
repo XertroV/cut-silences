@@ -1,4 +1,11 @@
-usage: python3 ./main.py -i ~/Videos/some-video.mkv
+usage: `python3 ./main.py -i ~/Videos/some-video.mkv`
+
+install dependencies: `pip3 install --user -r requirements.txt` (or use a virtual env)
+
+external dependencies:
+
+* ffmpeg
+* ffmpeg codecs like libx264 on linux -- not sure what you need for windows / macos
 
 ## todo
 
