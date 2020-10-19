@@ -10,6 +10,7 @@ external dependencies:
 ## todo
 
 * parameterise codec and test for gpu/hw encoding and codecs
+* parameterise (properly) max and min silence duration
 * figure out how to make the audio stage take a reasonable amount of time (it's too slow)
 * make sure using a minimum silence duration of something other than 0.5s works (might have had an issue with 2s but not certain; other things like a change of FPS could have caused anomaly too)
 * test it with more than just the .mkv files I generate with OBS
