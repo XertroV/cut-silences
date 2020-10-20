@@ -16,7 +16,7 @@ def test():
     fails = 0
     unk = 0
     for (silence, expected) in zipped_silences_and_expected:
-        output = ClipSilences.rescale_all_silences([silence])[0]
+        output = ClipSilences.rescale_all_silences([silence], max_duration=10, min_duration=0.5)[0]
         try:
             _o = list(output)
             _e = list(expected)
